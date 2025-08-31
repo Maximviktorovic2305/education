@@ -4,6 +4,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { User, LoginRequest, RegisterRequest } from '@/types';
 import { authApi } from '@/api/auth';
+import { ApiException } from '@/api/client';
 
 interface AuthStore {
   user: User | null;
@@ -21,6 +22,7 @@ interface AuthStore {
   clearError: () => void;
   setLoading: (loading: boolean) => void;
   initializeAuth: () => void;
+  updateUser: (user: User) => void;
 }
 
 export const useAuthStore = create<AuthStore>()(
@@ -48,9 +50,15 @@ export const useAuthStore = create<AuthStore>()(
             error: null,
           });
         } catch (error) {
+          const errorMessage = error instanceof ApiException 
+            ? error.message 
+            : error instanceof Error 
+            ? error.message 
+            : 'Login failed';
+          
           set({
             isLoading: false,
-            error: error instanceof Error ? error.message : 'Ошибка входа в систему',
+            error: errorMessage,
           });
           throw error;
         }
@@ -71,9 +79,15 @@ export const useAuthStore = create<AuthStore>()(
             error: null,
           });
         } catch (error) {
+          const errorMessage = error instanceof ApiException 
+            ? error.message 
+            : error instanceof Error 
+            ? error.message 
+            : 'Registration failed';
+          
           set({
             isLoading: false,
-            error: error instanceof Error ? error.message : 'Ошибка регистрации',
+            error: errorMessage,
           });
           throw error;
         }
@@ -87,7 +101,8 @@ export const useAuthStore = create<AuthStore>()(
             await authApi.logout({ refresh_token: refreshToken });
           }
         } catch (error) {
-          console.error('Ошибка при выходе из системы:', error);
+          // Log error but don't prevent logout
+          console.error('Logout error:', error instanceof ApiException ? error.message : 'Unknown error');
         } finally {
           set({
             user: null,
@@ -96,6 +111,14 @@ export const useAuthStore = create<AuthStore>()(
             refreshToken: null,
             error: null,
           });
+          
+          // Clear user stats data
+          try {
+            const { useUserStatsStore } = await import('./userStats');
+            useUserStatsStore.getState().clearUserData();
+          } catch (error) {
+            console.error('Failed to clear user stats:', error);
+          }
         }
       },
       
@@ -103,7 +126,7 @@ export const useAuthStore = create<AuthStore>()(
         const { refreshToken } = get();
         
         if (!refreshToken) {
-          throw new Error('Отсутствует refresh token');
+          throw new ApiException('No refresh token available', 401);
         }
         
         try {
@@ -115,13 +138,13 @@ export const useAuthStore = create<AuthStore>()(
             refreshToken: response.refresh_token,
           });
         } catch (error) {
-          // Если refresh token недействителен, разлогиниваем пользователя
+          // If refresh token is invalid, logout user
           set({
             user: null,
             isAuthenticated: false,
             accessToken: null,
             refreshToken: null,
-            error: 'Сессия истекла, необходимо войти заново',
+            error: 'Session expired, please login again',
           });
           throw error;
         }
@@ -131,13 +154,15 @@ export const useAuthStore = create<AuthStore>()(
       
       setLoading: (loading: boolean) => set({ isLoading: loading }),
       
+      updateUser: (user: User) => set({ user }),
+      
       initializeAuth: () => {
         const state = get();
-        // Проверяем, есть ли сохранённые токены
+        // Check if we have saved tokens
         if (state.refreshToken && !state.isAuthenticated) {
-          // Пытаемся обновить токен при инициализации
+          // Try to refresh token on initialization
           state.refreshAccessToken().catch(() => {
-            // Если не получилось, очищаем состояние
+            // If failed, clear state
             state.logout();
           });
         }
@@ -152,7 +177,7 @@ export const useAuthStore = create<AuthStore>()(
         refreshToken: state.refreshToken,
       }),
       onRehydrateStorage: () => (state) => {
-        // После восстановления состояния инициализируем авторизацию
+        // After state restoration, initialize auth
         if (state) {
           state.initializeAuth();
         }

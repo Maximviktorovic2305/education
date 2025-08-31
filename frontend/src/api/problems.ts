@@ -1,7 +1,7 @@
-import { Problem, UserSubmission, PaginatedResponse } from '@/types';
+import { Problem, UserSubmission, PaginatedResponse, ExecutionResult } from '@/types';
 import { api } from './client';
 
-interface ProblemFilters {
+export interface ProblemFilters {
   difficulty?: string;
   status?: string;
   page?: number;
@@ -9,12 +9,12 @@ interface ProblemFilters {
   search?: string;
 }
 
-interface SubmitSolutionRequest {
+export interface SubmitSolutionRequest {
   code: string;
   language: string;
 }
 
-interface SubmitSolutionResponse {
+export interface SubmitSolutionResponse {
   id: number;
   success: boolean;
   output: string;
@@ -25,7 +25,7 @@ interface SubmitSolutionResponse {
   score?: number;
 }
 
-interface TestResult {
+export interface TestResult {
   passed: boolean;
   input: string;
   expected_output: string;
@@ -33,232 +33,181 @@ interface TestResult {
   execution_time?: number;
 }
 
-// Comprehensive mock data for 60+ practice problems
-const mockProblems: Problem[] = [
-  // Easy Problems (20 problems)
-  {
-    id: 1,
-    title: 'Привет, мир!',
-    description: 'Напишите программу, которая выводит "Привет, мир!" на экран.',
-    difficulty: 'easy',
-    initial_code: 'package main\n\nimport "fmt"\n\nfunc main() {\n    // Ваш код здесь\n}',
-    test_cases: JSON.stringify([{
-      input: '',
-      expected_output: 'Привет, мир!\n'
-    }]),
-    points: 10,
-    time_limit: 1000,
-    memory_limit: 64,
-    is_active: true,
-    created_at: '2024-01-01T00:00:00Z',
-    updated_at: '2024-01-01T00:00:00Z',
-  },
-  {
-    id: 2,
-    title: 'Сумма двух чисел',
-    description: 'Напишите функцию, которая возвращает сумму двух целых чисел.',
-    difficulty: 'easy',
-    initial_code: 'package main\n\nimport "fmt"\n\nfunc add(a, b int) int {\n    // Ваш код здесь\n}\n\nfunc main() {\n    fmt.Println(add(2, 3))\n}',
-    test_cases: JSON.stringify([
-      { input: '2 3', expected_output: '5\n' },
-      { input: '0 0', expected_output: '0\n' },
-      { input: '-1 1', expected_output: '0\n' }
-    ]),
-    points: 15,
-    time_limit: 1000,
-    memory_limit: 64,
-    is_active: true,
-    created_at: '2024-01-01T00:00:00Z',
-    updated_at: '2024-01-01T00:00:00Z',
-  },
-  {
-    id: 3,
-    title: 'Проверка на чётность',
-    description: 'Определите, является ли число чётным.',
-    difficulty: 'easy',
-    initial_code: 'package main\n\nimport "fmt"\n\nfunc isEven(n int) bool {\n    // Ваш код здесь\n}\n\nfunc main() {\n    fmt.Println(isEven(4))\n}',
-    test_cases: JSON.stringify([
-      { input: '4', expected_output: 'true\n' },
-      { input: '3', expected_output: 'false\n' },
-      { input: '0', expected_output: 'true\n' }
-    ]),
-    points: 15,
-    time_limit: 1000,
-    memory_limit: 64,
-    is_active: true,
-    created_at: '2024-01-01T00:00:00Z',
-    updated_at: '2024-01-01T00:00:00Z',
-  },
+export interface ProblemStats {
+  total_submissions: number;
+  accepted_submissions: number;
+  acceptance_rate: number;
+  average_execution_time: number;
+  difficulty_rating: number;
+}
 
-];
-
-// Mock user submissions
-const mockSubmissions: Record<number, UserSubmission[]> = {
-  1: [
-    {
-      id: 1,
-      problem_id: 1,
-      user_id: 1,
-      code: 'package main\n\nimport "fmt"\n\nfunc main() {\n    fmt.Println("Привет, мир!")\n}',
-      language: 'go',
-      status: 'accepted',
-      output: 'Привет, мир!\n',
-      execution_time: 0.001,
-      memory_usage: 2.5,
-      score: 100,
-      created_at: '2024-01-01T00:00:00Z',
-      updated_at: '2024-01-01T00:00:00Z',
-    },
-  ],
-};
+export interface UserProgress {
+  total_solved: number;
+  easy_solved: number;
+  medium_solved: number;
+  hard_solved: number;
+  total_submissions: number;
+  acceptance_rate: number;
+  current_streak: number;
+  best_streak: number;
+}
 
 class ProblemAPI {
+  /**
+   * Get all problems with optional filtering and pagination
+   */
   async getProblems(filters: ProblemFilters = {}): Promise<PaginatedResponse<Problem>> {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 200));
+    const params = new URLSearchParams();
     
-    let filteredProblems = [...mockProblems];
+    if (filters.difficulty) params.append('difficulty', filters.difficulty);
+    if (filters.status) params.append('status', filters.status);
+    if (filters.search) params.append('search', filters.search);
+    if (filters.page) params.append('page', filters.page.toString());
+    if (filters.limit) params.append('limit', filters.limit.toString());
     
-    // Apply filters
-    if (filters.difficulty) {
-      filteredProblems = filteredProblems.filter(p => p.difficulty === filters.difficulty);
-    }
-    
-    if (filters.search) {
-      const searchLower = filters.search.toLowerCase();
-      filteredProblems = filteredProblems.filter(p => 
-        p.title.toLowerCase().includes(searchLower) ||
-        p.description.toLowerCase().includes(searchLower)
-      );
-    }
-    
-    // Pagination
-    const page = filters.page || 1;
-    const limit = filters.limit || 20;
-    const startIndex = (page - 1) * limit;
-    const endIndex = startIndex + limit;
-    
-    const paginatedProblems = filteredProblems.slice(startIndex, endIndex);
-    
-    return {
-      data: paginatedProblems,
-      total: filteredProblems.length,
-      page,
-      limit,
-      pages: Math.ceil(filteredProblems.length / limit),
-    };
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return api.protected.get<PaginatedResponse<Problem>>(`/problems${query}`);
   }
 
+  /**
+   * Get a specific problem by ID
+   */
   async getProblem(id: number): Promise<Problem> {
-    await new Promise(resolve => setTimeout(resolve, 100));
-    const problem = mockProblems.find(p => p.id === id);
-    if (!problem) {
-      throw new Error(`Задача с ID ${id} не найдена`);
-    }
-    return problem;
+    return api.protected.get<Problem>(`/problems/${id}`);
   }
 
+  /**
+   * Submit a solution for a problem
+   */
   async submitSolution(problemId: number, solution: SubmitSolutionRequest): Promise<SubmitSolutionResponse> {
-    await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate code execution
-    
-    const problem = mockProblems.find(p => p.id === problemId);
-    if (!problem) {
-      throw new Error(`Задача с ID ${problemId} не найдена`);
-    }
-    
-    // Mock execution results
-    const isCorrect = Math.random() > 0.3; // 70% success rate
-    const executionTime = Math.random() * 100;
-    const memoryUsage = Math.random() * 50;
-    
-    return {
-      id: Date.now(),
-      success: isCorrect,
-      output: isCorrect ? 'Код выполнен успешно' : 'Ошибка выполнения',
-      error: !isCorrect ? 'Ошибка компиляции' : undefined,
-      execution_time: executionTime,
-      memory_usage: memoryUsage,
-      score: isCorrect ? 100 : 0,
-      test_results: [
-        {
-          passed: isCorrect,
-          input: 'Тестовые данные',
-          expected_output: 'Ожидаемый результат',
-          actual_output: isCorrect ? 'Ожидаемый результат' : 'Неправильный результат',
-          execution_time: executionTime,
-        },
-      ],
-    };
+    return api.protected.post<SubmitSolutionResponse>(
+      `/problems/${problemId}/submit`, 
+      solution
+    );
   }
 
+  /**
+   * Get a specific submission by ID
+   */
   async getSubmission(submissionId: number): Promise<UserSubmission> {
-    await new Promise(resolve => setTimeout(resolve, 100));
-    // Find submission in mock data
-    for (const submissions of Object.values(mockSubmissions)) {
-      const submission = submissions.find(s => s.id === submissionId);
-      if (submission) {
-        return submission;
-      }
-    }
-    throw new Error(`Попытка с ID ${submissionId} не найдена`);
+    return api.protected.get<UserSubmission>(`/submissions/${submissionId}`);
   }
 
+  /**
+   * Get user's submissions, optionally filtered by problem ID
+   */
   async getUserSubmissions(problemId?: number): Promise<UserSubmission[]> {
-    await new Promise(resolve => setTimeout(resolve, 100));
-    if (problemId) {
-      return mockSubmissions[problemId] || [];
-    }
-    return Object.values(mockSubmissions).flat();
-  }
-
-  async getSubmissionsByProblem(problemId: number): Promise<UserSubmission[]> {
-    await new Promise(resolve => setTimeout(resolve, 100));
-    return mockSubmissions[problemId] || [];
-  }
-
-  async getProblemStats(problemId: number): Promise<{
-    total_submissions: number;
-    accepted_submissions: number;
-    acceptance_rate: number;
-    average_execution_time: number;
-    difficulty_rating: number;
-  }> {
-    await new Promise(resolve => setTimeout(resolve, 100));
-    const problem = mockProblems.find(p => p.id === problemId);
-    if (!problem) {
-      throw new Error(`Задача с ID ${problemId} не найдена`);
-    }
+    const params = new URLSearchParams();
+    if (problemId) params.append('problem_id', problemId.toString());
     
-    return {
-      total_submissions: 150,
-      accepted_submissions: 105,
-      acceptance_rate: 0.7,
-      average_execution_time: 0.05,
-      difficulty_rating: problem.difficulty === 'easy' ? 2 : problem.difficulty === 'medium' ? 5 : 8,
-    };
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return api.protected.get<UserSubmission[]>(`/submissions${query}`);
   }
 
-  async getUserProgress(): Promise<{
-    total_solved: number;
-    easy_solved: number;
-    medium_solved: number;
-    hard_solved: number;
-    total_submissions: number;
-    acceptance_rate: number;
-    current_streak: number;
-    best_streak: number;
-  }> {
-    await new Promise(resolve => setTimeout(resolve, 100));
-    return {
-      total_solved: 15,
-      easy_solved: 8,
-      medium_solved: 5,
-      hard_solved: 2,
-      total_submissions: 25,
-      acceptance_rate: 0.6,
-      current_streak: 3,
-      best_streak: 7,
-    };
+  /**
+   * Get all submissions for a specific problem
+   */
+  async getSubmissionsByProblem(problemId: number): Promise<UserSubmission[]> {
+    return api.protected.get<UserSubmission[]>(`/problems/${problemId}/submissions`);
+  }
+
+  /**
+   * Get statistics for a specific problem
+   */
+  async getProblemStats(problemId: number): Promise<ProblemStats> {
+    return api.protected.get<ProblemStats>(`/problems/${problemId}/stats`);
+  }
+
+  /**
+   * Get user's overall progress and statistics
+   */
+  async getUserProgress(): Promise<UserProgress> {
+    return api.protected.get<UserProgress>('/users/me/problem-progress');
+  }
+
+  /**
+   * Execute code in sandbox (for testing purposes)
+   */
+  async executeCode(code: string, language: string, input?: string): Promise<ExecutionResult> {
+    return api.protected.post<ExecutionResult>('/sandbox/execute', {
+      code,
+      language,
+      input: input || ''
+    });
+  }
+
+  /**
+   * Get user's submission history with pagination
+   */
+  async getSubmissionHistory(filters: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    problem_id?: number;
+  } = {}): Promise<PaginatedResponse<UserSubmission>> {
+    const params = new URLSearchParams();
+    
+    if (filters.page) params.append('page', filters.page.toString());
+    if (filters.limit) params.append('limit', filters.limit.toString());
+    if (filters.status) params.append('status', filters.status);
+    if (filters.problem_id) params.append('problem_id', filters.problem_id.toString());
+    
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return api.protected.get<PaginatedResponse<UserSubmission>>(`/submissions/history${query}`);
+  }
+
+  /**
+   * Get leaderboard for a specific problem
+   */
+  async getProblemLeaderboard(problemId: number, limit: number = 10): Promise<Array<{
+    user_id: number;
+    username: string;
+    score: number;
+    execution_time: number;
+    memory_usage: number;
+    submission_date: string;
+  }>> {
+    return api.protected.get(`/problems/${problemId}/leaderboard?limit=${limit}`);
+  }
+
+  /**
+   * Admin only: Create a new problem
+   */
+  async createProblem(problemData: {
+    title: string;
+    description: string;
+    difficulty: 'easy' | 'medium' | 'hard';
+    initial_code: string;
+    test_cases: string;
+    points: number;
+    time_limit: number;
+    memory_limit: number;
+  }): Promise<Problem> {
+    return api.protected.post<Problem>('/problems', problemData);
+  }
+
+  /**
+   * Admin only: Update a problem
+   */
+  async updateProblem(id: number, problemData: Partial<{
+    title: string;
+    description: string;
+    difficulty: 'easy' | 'medium' | 'hard';
+    initial_code: string;
+    test_cases: string;
+    points: number;
+    time_limit: number;
+    memory_limit: number;
+    is_active: boolean;
+  }>): Promise<Problem> {
+    return api.protected.put<Problem>(`/problems/${id}`, problemData);
+  }
+
+  /**
+   * Admin only: Delete a problem
+   */
+  async deleteProblem(id: number): Promise<void> {
+    return api.protected.delete<void>(`/problems/${id}`);
   }
 }
 

@@ -249,11 +249,50 @@ export interface ApiResponse<T = unknown> {
   message?: string;
 }
 
-export interface PaginatedResponse<T> extends ApiResponse<T[]> {
+export interface ApiSuccess<T> {
+  data: T;
+  message?: string;
+}
+
+export interface ApiError {
+  error: string;
+  details?: string;
+  code?: string;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
   total: number;
   page: number;
   limit: number;
   pages: number;
+}
+
+// Request/Response wrapper types
+export type ApiResult<T> = ApiSuccess<T> | ApiError;
+
+// Execution result for code submissions
+export interface ExecutionResult {
+  success: boolean;
+  output: string;
+  error?: string;
+  execution_time: number;
+  memory_usage: number;
+  test_results: TestResult[];
+}
+
+// Test case result
+export interface TestResult {
+  input: string;
+  expected: string;
+  actual: string;
+  passed: boolean;
+}
+
+// Loading state type
+export interface LoadingState {
+  isLoading: boolean;
+  error: string | null;
 }
 
 // Theme types

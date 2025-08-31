@@ -1,9 +1,23 @@
 import { useAuthStore } from '@/store/auth';
+import { ApiError, ApiSuccess, ApiResult } from '@/types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
 
 interface ApiConfig extends RequestInit {
   requireAuth?: boolean;
+}
+
+// Custom error class for API errors
+export class ApiException extends Error {
+  constructor(
+    message: string,
+    public status: number,
+    public code?: string,
+    public details?: string
+  ) {
+    super(message);
+    this.name = 'ApiException';
+  }
 }
 
 class ApiClient {
@@ -30,10 +44,18 @@ class ApiClient {
       }
     }
 
+    // Process request through interceptors
+    const processedConfig = interceptors.processRequest({
+      ...requestConfig,
+      headers,
+      url,
+      requireAuth
+    });
+
     try {
-      const response = await fetch(url, {
-        ...requestConfig,
-        headers,
+      const response = await fetch(processedConfig.url, {
+        ...processedConfig,
+        headers: processedConfig.headers,
       });
 
       // Handle 401 Unauthorized
@@ -47,37 +69,80 @@ class ApiClient {
           // Retry the original request with new token
           const { accessToken: newToken } = useAuthStore.getState();
           if (newToken) {
-            headers.Authorization = `Bearer ${newToken}`;
+            const retryHeaders = {
+              ...headers,
+              Authorization: `Bearer ${newToken}`
+            };
             const retryResponse = await fetch(url, {
               ...requestConfig,
-              headers,
+              headers: retryHeaders,
             });
             
             if (!retryResponse.ok) {
-              throw new Error('Request failed after token refresh');
+              const errorData = await retryResponse.json().catch(() => ({ error: 'Request failed after token refresh' }));
+              const error = new ApiException(
+                errorData.error || 'Request failed after token refresh',
+                retryResponse.status,
+                errorData.code,
+                errorData.details
+              );
+              interceptors.processError(error, processedConfig);
+              throw error;
             }
             
-            return retryResponse.json();
+            const retryData = await retryResponse.json();
+            const processedRetryData = interceptors.processResponse(retryData, processedConfig);
+            return this.extractResponseData(processedRetryData);
           }
         } catch (error) {
           // Refresh failed, logout user
           logout();
-          throw new Error('Session expired, please login again');
+          const apiError = new ApiException('Session expired, please login again', 401);
+          interceptors.processError(apiError, processedConfig);
+          throw apiError;
         }
       }
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      return response.json();
-    } catch (error) {
-      if (error instanceof Error) {
+        const errorData = await response.json().catch(() => ({ error: `HTTP ${response.status}: ${response.statusText}` }));
+        const error = new ApiException(
+          errorData.error || `HTTP ${response.status}: ${response.statusText}`,
+          response.status,
+          errorData.code,
+          errorData.details
+        );
+        interceptors.processError(error, processedConfig);
         throw error;
       }
-      throw new Error('Network error occurred');
+
+      const responseData = await response.json();
+      const processedData = interceptors.processResponse(responseData, processedConfig);
+      
+      return this.extractResponseData(processedData);
+    } catch (error) {
+      if (error instanceof ApiException) {
+        throw error;
+      }
+      const apiError = error instanceof Error 
+        ? new ApiException(error.message, 0)
+        : new ApiException('Network error occurred', 0);
+      interceptors.processError(apiError, processedConfig);
+      throw apiError;
     }
+  }
+
+  private extractResponseData<T>(responseData: any): T {
+    // Check if response is in the expected format
+    if (responseData && typeof responseData === 'object') {
+      // If response has 'data' property, return the data
+      if ('data' in responseData) {
+        return responseData.data;
+      }
+      // Otherwise return the whole response
+      return responseData;
+    }
+    
+    return responseData;
   }
 
   // GET request
@@ -120,6 +185,74 @@ class ApiClient {
 
 export const apiClient = new ApiClient(API_URL);
 
+// Request interceptor type
+type RequestInterceptor = (config: ApiConfig & { url: string }) => ApiConfig & { url: string };
+
+// Response interceptor type
+type ResponseInterceptor = <T>(response: T, config: ApiConfig & { url: string }) => T;
+
+// Error interceptor type
+type ErrorInterceptor = (error: ApiException, config: ApiConfig & { url: string }) => void;
+
+// Interceptor management
+class InterceptorManager {
+  private requestInterceptors: RequestInterceptor[] = [];
+  private responseInterceptors: ResponseInterceptor[] = [];
+  private errorInterceptors: ErrorInterceptor[] = [];
+
+  addRequestInterceptor(interceptor: RequestInterceptor) {
+    this.requestInterceptors.push(interceptor);
+  }
+
+  addResponseInterceptor(interceptor: ResponseInterceptor) {
+    this.responseInterceptors.push(interceptor);
+  }
+
+  addErrorInterceptor(interceptor: ErrorInterceptor) {
+    this.errorInterceptors.push(interceptor);
+  }
+
+  processRequest(config: ApiConfig & { url: string }): ApiConfig & { url: string } {
+    return this.requestInterceptors.reduce((acc, interceptor) => interceptor(acc), config);
+  }
+
+  processResponse<T>(response: T, config: ApiConfig & { url: string }): T {
+    return this.responseInterceptors.reduce((acc, interceptor) => interceptor(acc, config), response);
+  }
+
+  processError(error: ApiException, config: ApiConfig & { url: string }): void {
+    this.errorInterceptors.forEach(interceptor => interceptor(error, config));
+  }
+}
+
+export const interceptors = new InterceptorManager();
+
+// Add default request interceptor for logging
+interceptors.addRequestInterceptor((config) => {
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`🚀 API Request: ${config.method?.toUpperCase() || 'GET'} ${config.url}`);
+  }
+  return config;
+});
+
+// Add default response interceptor for logging
+interceptors.addResponseInterceptor((response, config) => {
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`✅ API Response: ${config.method?.toUpperCase() || 'GET'} ${config.url}`, response);
+  }
+  return response;
+});
+
+// Add default error interceptor for logging
+interceptors.addErrorInterceptor((error, config) => {
+  if (process.env.NODE_ENV === 'development') {
+    console.error(`❌ API Error: ${config.method?.toUpperCase() || 'GET'} ${config.url}`, error);
+  }
+  
+  // You can add global error handling here
+  // For example, show toast notifications for certain error types
+});
+
 // Convenience methods for common patterns
 export const api = {
   // Public endpoints (no auth required)
@@ -136,4 +269,16 @@ export const api = {
     patch: <T>(endpoint: string, data?: unknown) => apiClient.patch<T>(endpoint, data, { requireAuth: true }),
     delete: <T>(endpoint: string) => apiClient.delete<T>(endpoint, { requireAuth: true }),
   },
+  
+  // Upload endpoints (for file uploads)
+  upload: {
+    post: <T>(endpoint: string, formData: FormData) => 
+      apiClient.post<T>(endpoint, formData, { 
+        requireAuth: true, 
+        headers: {} // Remove Content-Type to let browser set it with boundary
+      }),
+  },
 };
+
+// Export the ApiException for use in other modules
+export { ApiException };
