@@ -157,7 +157,7 @@ export interface TestAnswer {
   question?: TestQuestion;
 }
 
-export interface TestResult {
+export interface TestSubmissionResult {
   id: number;
   user_id: number;
   test_id: number;
@@ -238,8 +238,73 @@ export interface RegisterRequest {
   password: string;
 }
 
+export interface UpdateUserRequest {
+  name?: string;
+  email?: string;
+  avatar?: string;
+}
+
 export interface RefreshRequest {
   refresh_token: string;
+}
+
+// Filter types
+export interface CourseFilters {
+  page?: number;
+  limit?: number;
+  is_active?: boolean;
+}
+
+export interface ProblemFilters {
+  difficulty?: string;
+  status?: string;
+  page?: number;
+  limit?: number;
+  search?: string;
+}
+
+export interface TestFilters {
+  search?: string;
+  difficulty?: string;
+  status?: string;
+  category?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface ProgressFilters {
+  course_id?: number;
+  section_id?: number;
+  completed?: boolean;
+  page?: number;
+  limit?: number;
+}
+
+export interface CertificateFilters {
+  type?: string;
+  status?: 'valid' | 'expired';
+  issued_year?: number;
+  page?: number;
+  limit?: number;
+}
+
+// Test result type
+export interface TestResult {
+  id: number;
+  user_id: number;
+  test_id: number;
+  score: number;
+  max_score: number;
+  percentage: number;
+  is_passed: boolean;
+  time_spent: number;
+  answers: string;
+  started_at: string;
+  completed_at?: string;
+  created_at: string;
+  updated_at: string;
+  user?: User;
+  test?: Test;
 }
 
 // API Response types
@@ -278,15 +343,17 @@ export interface ExecutionResult {
   error?: string;
   execution_time: number;
   memory_usage: number;
-  test_results: TestResult[];
+  test_results: CodeTestCaseResult[];
 }
 
 // Test case result
-export interface TestResult {
+export interface CodeTestCaseResult {
   input: string;
   expected: string;
   actual: string;
   passed: boolean;
+  execution_time?: number;
+  memory_usage?: number;
 }
 
 // Loading state type
@@ -333,7 +400,7 @@ export interface PracticeState {
 export interface TestState {
   tests: Test[];
   currentTest: Test | null;
-  currentTestResult: TestResult | null;
+  currentTestResult: TestSubmissionResult | null;
   userAnswers: Record<number, number>;
   isLoading: boolean;
   error: string | null;

@@ -55,5 +55,7 @@ func Migrate(db *gorm.DB) error {
 		&models.UserTestResult{},
 		&models.Certificate{},
 		&models.RefreshToken{},
+		&models.Feature{},
+		&models.Level{},
 	)
 }

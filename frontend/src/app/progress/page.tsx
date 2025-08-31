@@ -3,7 +3,7 @@
 import { AuthGuard } from '@/components/auth/auth-guard';
 import { ProgressOverview } from '@/components/progress/progress-overview';
 import { ProgressStats } from '@/components/progress/progress-stats';
-import { useAuthStore } from '@/store/auth';
+import { useProfile, useLogout } from '@/hooks/queries/useAuth';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -11,7 +11,8 @@ import { ArrowLeft, User, LogOut, TrendingUp, BarChart3, Award } from 'lucide-re
 import Link from 'next/link';
 
 export default function ProgressPage() {
-  const { user, logout } = useAuthStore();
+  const { data: user } = useProfile();
+  const { mutate: logout } = useLogout();
 
   return (
     <AuthGuard>

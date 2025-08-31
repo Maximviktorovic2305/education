@@ -16,7 +16,7 @@ import {
   Star,
   CheckCircle2
 } from 'lucide-react';
-import { useProgressStore } from '@/store/progress';
+import { useCurrentUserStats, useLevelSystem, useLearningStreak, useAchievements } from '@/hooks/queries/useProgress';
 
 interface ProgressOverviewProps {
   showDetailed?: boolean;
@@ -27,21 +27,36 @@ export const ProgressOverview: React.FC<ProgressOverviewProps> = ({
   showDetailed = true,
   compact = false,
 }) => {
-  const {
-    userStats,
-    levelSystem,
-    learningStreak,
-    isLoading,
-    error,
-    fetchAllProgressData,
-    getLevelName,
-    getLevelIcon,
-    getProgressPercentage,
-  } = useProgressStore();
-
-  useEffect(() => {
-    fetchAllProgressData();
-  }, [fetchAllProgressData]);
+  const { data: userStats, isLoading: statsLoading, error: statsError } = useCurrentUserStats();
+  const { data: levelSystem } = useLevelSystem();
+  const { data: learningStreak } = useLearningStreak();
+  const { data: achievements } = useAchievements();
+  
+  const isLoading = statsLoading;
+  const error = statsError;
+  
+  // Helper functions
+  const getLevelName = (level: string) => {
+    switch (level) {
+      case 'junior': return 'Junior Разработчик';
+      case 'middle': return 'Middle Разработчик';
+      case 'senior': return 'Senior Разработчик';
+      default: return 'Разработчик';
+    }
+  };
+  
+  const getLevelIcon = (level: string) => {
+    switch (level) {
+      case 'junior': return '🎓';
+      case 'middle': return '📘';
+      case 'senior': return '👨‍💻';
+      default: return '👨‍💻';
+    }
+  };
+  
+  const getProgressPercentage = (completed: number, total: number) => {
+    return total > 0 ? (completed / total) * 100 : 0;
+  };
 
   if (isLoading && !userStats) {
     return (

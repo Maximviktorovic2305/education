@@ -1,5 +1,4 @@
-import { useAuthStore } from '@/store/auth';
-import { ApiError, ApiSuccess, ApiResult } from '@/types';
+import { getAccessToken, getRefreshToken, setTokens, clearTokens } from '@/lib/queryClient';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
 
@@ -38,7 +37,7 @@ class ApiClient {
 
     // Add authorization header if required
     if (requireAuth) {
-      const { accessToken } = useAuthStore.getState();
+      const accessToken = getAccessToken();
       if (accessToken) {
         headers.Authorization = `Bearer ${accessToken}`;
       }
@@ -60,43 +59,56 @@ class ApiClient {
 
       // Handle 401 Unauthorized
       if (response.status === 401 && requireAuth) {
-        const { refreshAccessToken, logout } = useAuthStore.getState();
-        
         try {
           // Try to refresh token
-          await refreshAccessToken();
+          const refreshToken = getRefreshToken();
+          if (!refreshToken) {
+            throw new Error('No refresh token available');
+          }
+          
+          // Make refresh request
+          const refreshResponse = await fetch(`${this.baseUrl}/auth/refresh`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refresh_token: refreshToken })
+          });
+          
+          if (!refreshResponse.ok) {
+            throw new Error('Token refresh failed');
+          }
+          
+          const refreshData = await refreshResponse.json();
+          setTokens(refreshData.access_token, refreshData.refresh_token);
           
           // Retry the original request with new token
-          const { accessToken: newToken } = useAuthStore.getState();
-          if (newToken) {
-            const retryHeaders = {
-              ...headers,
-              Authorization: `Bearer ${newToken}`
-            };
-            const retryResponse = await fetch(url, {
-              ...requestConfig,
-              headers: retryHeaders,
-            });
-            
-            if (!retryResponse.ok) {
-              const errorData = await retryResponse.json().catch(() => ({ error: 'Request failed after token refresh' }));
-              const error = new ApiException(
-                errorData.error || 'Request failed after token refresh',
-                retryResponse.status,
-                errorData.code,
-                errorData.details
-              );
-              interceptors.processError(error, processedConfig);
-              throw error;
-            }
-            
-            const retryData = await retryResponse.json();
-            const processedRetryData = interceptors.processResponse(retryData, processedConfig);
-            return this.extractResponseData(processedRetryData);
+          const retryHeaders = {
+            ...headers,
+            Authorization: `Bearer ${refreshData.access_token}`
+          };
+          const retryResponse = await fetch(url, {
+            ...requestConfig,
+            headers: retryHeaders,
+          });
+          
+          if (!retryResponse.ok) {
+            const errorData = await retryResponse.json().catch(() => ({ error: 'Request failed after token refresh' }));
+            const error = new ApiException(
+              errorData.error || 'Request failed after token refresh',
+              retryResponse.status,
+              errorData.code,
+              errorData.details
+            );
+            interceptors.processError(error, processedConfig);
+            throw error;
           }
+          
+          const retryData = await retryResponse.json();
+          const processedRetryData = interceptors.processResponse(retryData, processedConfig);
+          return this.extractResponseData(processedRetryData);
         } catch (error) {
-          // Refresh failed, logout user
-          logout();
+          // Refresh failed, clear tokens
+          clearTokens();
+          window.location.href = '/auth/login';
           const apiError = new ApiException('Session expired, please login again', 401);
           interceptors.processError(apiError, processedConfig);
           throw apiError;
@@ -279,6 +291,3 @@ export const api = {
       }),
   },
 };
-
-// Export the ApiException for use in other modules
-export { ApiException };

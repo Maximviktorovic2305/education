@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useCourseStore } from '@/store/course';
+import { useState } from 'react';
+import { useNavigationStore } from '@/store/navigation';
+import { useCourses, useCourseSections } from '@/hooks/queries/useCourses';
 import { ChevronDown, ChevronRight, Book, Circle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -12,32 +13,20 @@ interface CourseSidebarProps {
 }
 
 export const CourseSidebar: React.FC<CourseSidebarProps> = ({ onLessonSelect }) => {
-  const {
-    courses,
-    sections,
-    currentCourse,
-    currentLesson,
-    isLoading,
-    error,
-    fetchCourses,
-    fetchCourseSections,
-    setCurrentCourse,
-  } = useCourseStore();
-
+  const { currentCourseId, currentLessonId, setCurrentCourseId, setCurrentLessonId } = useNavigationStore();
+  
+  // Fetch courses
+  const { data: courses = [], isLoading: coursesLoading, error: coursesError, refetch: refetchCourses } = useCourses();
+  
+  // Fetch sections for current course
+  const { data: sections = [], isLoading: sectionsLoading } = useCourseSections(currentCourseId || 0);
+  
   const [expandedSections, setExpandedSections] = useState<Set<number>>(new Set());
 
-  useEffect(() => {
-    fetchCourses();
-  }, [fetchCourses]);
+  const currentCourse = courses.find(course => course.id === currentCourseId) || null;
 
-  useEffect(() => {
-    if (currentCourse) {
-      fetchCourseSections(currentCourse.id);
-    }
-  }, [currentCourse, fetchCourseSections]);
-
-  const handleCourseSelect = (course: typeof courses[0]) => {
-    setCurrentCourse(course);
+  const handleCourseSelect = (courseId: number) => {
+    setCurrentCourseId(courseId);
     setExpandedSections(new Set()); // Collapse all sections when switching courses
   };
 
@@ -52,12 +41,13 @@ export const CourseSidebar: React.FC<CourseSidebarProps> = ({ onLessonSelect }) 
   };
 
   const handleLessonClick = (lessonId: number) => {
+    setCurrentLessonId(lessonId);
     if (onLessonSelect) {
       onLessonSelect(lessonId);
     }
   };
 
-  if (isLoading && courses.length === 0) {
+  if (coursesLoading && courses.length === 0) {
     return (
       <div className="w-80 border-r bg-muted/50 p-4">
         <div className="space-y-3">
@@ -69,12 +59,12 @@ export const CourseSidebar: React.FC<CourseSidebarProps> = ({ onLessonSelect }) 
     );
   }
 
-  if (error) {
+  if (coursesError) {
     return (
       <div className="w-80 border-r bg-muted/50 p-4">
         <div className="text-center">
-          <p className="text-sm text-destructive mb-2">{error}</p>
-          <Button size="sm" onClick={fetchCourses}>
+          <p className="text-sm text-destructive mb-2">Ошибка загрузки курсов</p>
+          <Button size="sm" onClick={() => refetchCourses()}>
             Повторить
           </Button>
         </div>
@@ -91,9 +81,9 @@ export const CourseSidebar: React.FC<CourseSidebarProps> = ({ onLessonSelect }) 
           {courses.map((course) => (
             <Button
               key={course.id}
-              variant={currentCourse?.id === course.id ? 'default' : 'ghost'}
+              variant={currentCourseId === course.id ? 'default' : 'ghost'}
               className="w-full justify-start h-auto p-3"
-              onClick={() => handleCourseSelect(course)}
+              onClick={() => handleCourseSelect(course.id)}
             >
               <Book className="h-4 w-4 mr-2 flex-shrink-0" />
               <div className="text-left">
@@ -115,7 +105,7 @@ export const CourseSidebar: React.FC<CourseSidebarProps> = ({ onLessonSelect }) 
           <div className="p-4">
             <h4 className="font-semibold mb-4">{currentCourse.title}</h4>
             
-            {isLoading && sections.length === 0 ? (
+            {sectionsLoading && sections.length === 0 ? (
               <div className="space-y-3">
                 {[...Array(3)].map((_, i) => (
                   <div key={i} className="h-8 bg-muted animate-pulse rounded" />
@@ -148,7 +138,7 @@ export const CourseSidebar: React.FC<CourseSidebarProps> = ({ onLessonSelect }) 
                         {section.lessons?.map((lesson) => (
                           <Button
                             key={lesson.id}
-                            variant={currentLesson?.id === lesson.id ? 'secondary' : 'ghost'}
+                            variant={currentLessonId === lesson.id ? 'secondary' : 'ghost'}
                             className="w-full justify-start h-auto p-2 text-sm"
                             onClick={() => handleLessonClick(lesson.id)}
                           >

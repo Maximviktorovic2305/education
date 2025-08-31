@@ -1,6 +1,5 @@
 'use client';
 
-import { useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -12,11 +11,10 @@ import {
   Award,
   Shield,
   ExternalLink,
-  Copy,
   CheckCircle2,
   AlertCircle
 } from 'lucide-react';
-import { useCertificateStore } from '@/store/certificate';
+import { useCertificates, useDownloadCertificate } from '@/hooks/queries/useCertificates';
 import { Certificate } from '@/types';
 
 interface CertificateListProps {
@@ -30,40 +28,23 @@ export const CertificateList: React.FC<CertificateListProps> = ({
   selectedCertificateId,
   compact = false,
 }) => {
-  const {
-    certificates,
-    pagination,
-    isLoading,
-    error,
-    fetchCertificates,
-    downloadCertificate,
-    shareCertificate,
-    clearError,
-    getCertificateTypeTitle,
-    getCertificateTypeIcon,
-    isValidCertificate,
-    formatCertificateNumber,
-  } = useCertificateStore();
-
-  useEffect(() => {
-    fetchCertificates();
-  }, [fetchCertificates]);
+  const { data: certificatesData, isLoading, error } = useCertificates();
+  const downloadMutation = useDownloadCertificate();
+  
+  const certificates = certificatesData?.data || [];
+  const pagination = {
+    page: certificatesData?.page || 1,
+    limit: certificatesData?.limit || 10,
+    total: certificatesData?.total || 0,
+    pages: certificatesData?.pages || 1,
+  };
 
   const handleDownload = async (e: React.MouseEvent, certificateId: number) => {
     e.stopPropagation();
-    await downloadCertificate(certificateId);
+    downloadMutation.mutate(certificateId);
   };
 
-  const handleShare = async (e: React.MouseEvent, certificateId: number) => {
-    e.stopPropagation();
-    try {
-      const shareUrl = await shareCertificate(certificateId);
-      // Show toast or notification
-      console.log('Certificate shared:', shareUrl);
-    } catch (error) {
-      console.error('Failed to share certificate:', error);
-    }
-  };
+
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('ru-RU', {
@@ -87,8 +68,8 @@ export const CertificateList: React.FC<CertificateListProps> = ({
     return (
       <Card className="border-destructive">
         <CardContent className="p-6 text-center">
-          <p className="text-destructive mb-2">{error}</p>
-          <Button size="sm" onClick={clearError} variant="outline">
+          <p className="text-destructive mb-2">{error.message || 'Ошибка загрузки сертификатов'}</p>
+          <Button size="sm" onClick={() => window.location.reload()} variant="outline">
             Повторить
           </Button>
         </CardContent>

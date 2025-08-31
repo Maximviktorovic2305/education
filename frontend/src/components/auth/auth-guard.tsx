@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuthStore } from '@/store/auth';
+import { useProfile } from '@/hooks/queries/useAuth';
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -13,18 +13,18 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({
   children, 
   redirectTo = '/auth/login' 
 }) => {
-  const { isAuthenticated, user } = useAuthStore();
+  const { data: user, isLoading, error } = useProfile();
   const router = useRouter();
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!isLoading && (!user || error)) {
       router.push(redirectTo);
       return;
     }
-  }, [isAuthenticated, router, redirectTo]);
+  }, [user, isLoading, error, router, redirectTo]);
 
   // Show loading while checking authentication
-  if (!isAuthenticated || !user) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background to-muted flex items-center justify-center">
         <div className="text-center">
@@ -33,6 +33,11 @@ export const AuthGuard: React.FC<AuthGuardProps> = ({
         </div>
       </div>
     );
+  }
+
+  // If not authenticated, redirect
+  if (!user || error) {
+    return null; // Will be redirected by useEffect
   }
 
   return <>{children}</>;
@@ -47,26 +52,31 @@ export const GuestGuard: React.FC<GuestGuardProps> = ({
   children, 
   redirectTo = '/dashboard' 
 }) => {
-  const { isAuthenticated } = useAuthStore();
+  const { data: user, isLoading } = useProfile();
   const router = useRouter();
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (!isLoading && user) {
       router.push(redirectTo);
       return;
     }
-  }, [isAuthenticated, router, redirectTo]);
+  }, [user, isLoading, router, redirectTo]);
 
-  // If authenticated, don't render children (will redirect)
-  if (isAuthenticated) {
+  // If loading, show loading state
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background to-muted flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Перенаправление...</p>
+          <p className="text-muted-foreground">Проверка авторизации...</p>
         </div>
       </div>
     );
+  }
+
+  // If authenticated, redirect
+  if (user) {
+    return null; // Will be redirected by useEffect
   }
 
   return <>{children}</>;

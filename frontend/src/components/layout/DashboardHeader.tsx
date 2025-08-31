@@ -2,19 +2,19 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useAuthStore } from '@/store/auth';
+import { useProfile, useLogout } from '@/hooks/queries/useAuth';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { User, LogOut } from 'lucide-react';
 import Logo from '@/components/common/Logo';
 
 const DashboardHeader = () => {
-  const { user, logout } = useAuthStore();
+  const { data: user } = useProfile();
+  const logoutMutation = useLogout();
   const router = useRouter();
 
   const handleLogout = async () => {
-    await logout();
-    router.push('/');
+    logoutMutation.mutate();
   };
 
   return (

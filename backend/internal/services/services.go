@@ -195,19 +195,47 @@ func NewTestService(db *gorm.DB) *TestService {
 	return &TestService{db: db}
 }
 
-type ProgressService struct {
-	db *gorm.DB
+// GetTests получает список тестов с пагинацией и фильтрацией
+func (s *TestService) GetTests(page, limit int, search, difficulty string) ([]models.Test, int64, error) {
+	var tests []models.Test
+	var total int64
+	
+	query := s.db.Model(&models.Test{}).Where("is_active = ?", true)
+	
+	if search != "" {
+		query = query.Where("title ILIKE ? OR description ILIKE ?", "%"+search+"%", "%"+search+"%")
+	}
+	
+	if difficulty != "" {
+		query = query.Where("difficulty = ?", difficulty)
+	}
+	
+	// Get total count
+	query.Count(&total)
+	
+	// Get paginated results with questions
+	err := query.Preload("Questions").
+		Offset((page - 1) * limit).Limit(limit).
+		Order("created_at DESC").Find(&tests).Error
+	
+	return tests, total, err
 }
 
-func NewProgressService(db *gorm.DB) *ProgressService {
-	return &ProgressService{db: db}
+// GetTestByID получает тест по ID с вопросами и ответами
+func (s *TestService) GetTestByID(testID uint) (*models.Test, error) {
+	var test models.Test
+	err := s.db.Preload("Questions").
+		Where("id = ? AND is_active = ?", testID, true).
+		First(&test).Error
+	
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("тест не найден")
+		}
+		return nil, fmt.Errorf("ошибка получения теста: %w", err)
+	}
+	
+	return &test, nil
 }
 
-type CertificateService struct {
-	db *gorm.DB
-}
-
-func NewCertificateService(db *gorm.DB) *CertificateService {
-	return &CertificateService{db: db}
-}
 

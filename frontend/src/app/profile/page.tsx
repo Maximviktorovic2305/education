@@ -5,9 +5,9 @@ import { AuthGuard } from '@/components/auth/auth-guard';
 import { ProgressOverview } from '@/components/progress/progress-overview';
 import { ProgressStats } from '@/components/progress/progress-stats';
 import { CertificateList } from '@/components/certificates/certificate-list';
-import { useAuthStore } from '@/store/auth';
-import { useProgressStore } from '@/store/progress';
-import { useCertificateStore } from '@/store/certificate';
+import { useProfile, useLogout } from '@/hooks/queries/useAuth';
+import { useCurrentUserStats, useLearningStreak } from '@/hooks/queries/useProgress';
+import { useCertificates } from '@/hooks/queries/useCertificates';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -34,9 +34,13 @@ import {
 import Link from 'next/link';
 
 export default function ProfilePage() {
-  const { user, logout } = useAuthStore();
-  const { userStats, learningStreak } = useProgressStore();
-  const { certificates } = useCertificateStore();
+  const { data: user } = useProfile();
+  const { mutate: logout } = useLogout();
+  const { data: userStats } = useCurrentUserStats();
+  const { data: learningStreak } = useLearningStreak();
+  const { data: certificatesData } = useCertificates();
+  
+  const certificates = certificatesData?.data || [];
   
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({

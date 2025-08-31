@@ -2,38 +2,24 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PasswordField } from '@/components/ui/password-field';
 import { Logo } from '@/components/ui/logo';
-import { useAuthStore } from '@/store/auth';
+import { useLogin } from '@/hooks/queries/useAuth';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { toast } from 'sonner';
 import { ArrowLeft } from 'lucide-react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   
-  const { login } = useAuthStore();
-  const router = useRouter();
+  const loginMutation = useLogin();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-
-    try {
-      await login({ email, password });
-      toast.success('Добро пожаловать!');
-      router.push('/dashboard');
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Ошибка входа в систему');
-    } finally {
-      setIsLoading(false);
-    }
+    loginMutation.mutate({ email, password });
   };
 
   return (
@@ -77,7 +63,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  disabled={isLoading}
+                  disabled={loginMutation.isPending}
                 />
               </div>
 
@@ -89,11 +75,11 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                disabled={isLoading}
+                disabled={loginMutation.isPending}
               />
 
-              <Button type="submit" className="w-full cursor-pointer" disabled={isLoading}>
-                {isLoading ? 'Вход...' : 'Войти'}
+              <Button type="submit" className="w-full cursor-pointer" disabled={loginMutation.isPending}>
+                {loginMutation.isPending ? 'Вход...' : 'Войти'}
               </Button>
             </form>
 

@@ -5,7 +5,7 @@ import { AuthGuard } from '@/components/auth/auth-guard';
 import { CertificateList } from '@/components/certificates/certificate-list';
 import { CertificateEligibility } from '@/components/certificates/certificate-eligibility';
 import { CertificateValidator } from '@/components/certificates/certificate-validator';
-import { useAuthStore } from '@/store/auth';
+import { useProfile, useLogout } from '@/hooks/queries/useAuth';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -14,7 +14,8 @@ import { Certificate } from '@/types';
 import Link from 'next/link';
 
 export default function CertificatesPage() {
-  const { user, logout } = useAuthStore();
+  const { data: user } = useProfile();
+  const logoutMutation = useLogout();
   const [selectedCertificate, setSelectedCertificate] = useState<Certificate | null>(null);
 
   const handleCertificateSelect = (certificate: Certificate) => {
@@ -52,7 +53,7 @@ export default function CertificatesPage() {
                 <User className="h-4 w-4" />
                 <span className="text-sm">{user?.name}</span>
               </div>
-              <Button variant="outline" size="sm" onClick={logout}>
+              <Button variant="outline" size="sm" onClick={() => logoutMutation.mutate()}>
                 <LogOut className="h-4 w-4 mr-2" />
                 Выйти
               </Button>

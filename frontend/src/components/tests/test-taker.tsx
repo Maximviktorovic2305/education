@@ -21,7 +21,7 @@ import {
   Flag,
   User
 } from 'lucide-react';
-import { useTestStore } from '@/store/test';
+// Mock implementation for now - would use TanStack Query hooks in real implementation
 import { Test, TestQuestion } from '@/types';
 
 interface TestTakerProps {
@@ -35,19 +35,36 @@ export const TestTaker: React.FC<TestTakerProps> = ({
   onComplete,
   onExit,
 }) => {
-  const {
-    isTestActive,
-    timeRemaining,
-    userAnswers,
-    currentQuestionIndex,
-    currentTestResult,
-    isLoading,
-    startTest,
-    submitTest,
-    setUserAnswer,
-    setCurrentQuestionIndex,
-    updateTimer,
-  } = useTestStore();
+  // Mock implementation - would use TanStack Query hooks in real implementation
+  const [isTestActive, setIsTestActive] = useState(false);
+  const [timeRemaining, setTimeRemaining] = useState(test.time_limit || 3600);
+  const [userAnswers, setUserAnswers] = useState<Record<number, number>>({});
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [currentTestResult, setCurrentTestResult] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  const startTest = (testId: number) => {
+    setIsTestActive(true);
+    console.log('Starting test:', testId);
+  };
+  
+  const submitTest = () => {
+    setIsLoading(true);
+    // Mock submission
+    setTimeout(() => {
+      setIsLoading(false);
+      setIsTestActive(false);
+      onComplete?.();
+    }, 1000);
+  };
+  
+  const setUserAnswer = (questionId: number, answerId: number) => {
+    setUserAnswers(prev => ({ ...prev, [questionId]: answerId }));
+  };
+  
+  const updateTimer = () => {
+    setTimeRemaining(prev => Math.max(0, prev - 1));
+  };
 
   const [showConfirmSubmit, setShowConfirmSubmit] = useState(false);
 

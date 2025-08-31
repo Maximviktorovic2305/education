@@ -19,7 +19,7 @@ import {
   Code,
   TrendingUp
 } from 'lucide-react';
-import { useProblemStore } from '@/store/problem';
+import { useProblems } from '@/hooks/queries/useProblems';
 import { Problem } from '@/types';
 
 interface ProblemListProps {
@@ -35,28 +35,39 @@ export const ProblemList: React.FC<ProblemListProps> = ({
   showFilters = true,
   compact = false,
 }) => {
-  const {
-    problems,
-    filters,
-    pagination,
-    isLoading,
-    error,
-    userProgress,
-    fetchProblems,
-    fetchUserProgress,
-    setFilters,
-    clearError,
-  } = useProblemStore();
-
-  const [searchTerm, setSearchTerm] = useState(filters.search || '');
-
-  useEffect(() => {
-    fetchProblems();
-    fetchUserProgress();
-  }, [fetchProblems, fetchUserProgress]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [difficultyFilter, setDifficultyFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  
+  const filters = {
+    search: searchTerm || undefined,
+    difficulty: difficultyFilter !== 'all' ? difficultyFilter : undefined,
+    status: statusFilter !== 'all' ? statusFilter : undefined,
+  };
+  
+  const { data: problemsData, isLoading, error } = useProblems(filters);
+  
+  const problems = problemsData?.data || [];
+  const pagination = {
+    page: problemsData?.page || 1,
+    limit: problemsData?.limit || 10,
+    total: problemsData?.total || 0,
+    pages: problemsData?.pages || 1,
+  };
+  
+  // Mock user progress data
+  const userProgress = {
+    total_solved: 0,
+    acceptance_rate: 0,
+    current_streak: 0,
+    best_streak: 0,
+    easy_solved: 0,
+    medium_solved: 0,
+    hard_solved: 0,
+  };
 
   const handleSearch = () => {
-    setFilters({ search: searchTerm });
+    // Search is handled automatically by the query when searchTerm changes
   };
 
   const handleSearchKeyPress = (e: React.KeyboardEvent) => {
@@ -66,15 +77,16 @@ export const ProblemList: React.FC<ProblemListProps> = ({
   };
 
   const handleDifficultyFilter = (difficulty: string) => {
-    setFilters({ difficulty: difficulty === 'all' ? undefined : difficulty });
+    setDifficultyFilter(difficulty);
   };
 
   const handleStatusFilter = (status: string) => {
-    setFilters({ status: status === 'all' ? undefined : status });
+    setStatusFilter(status);
   };
 
   const handlePageChange = (page: number) => {
-    fetchProblems(page);
+    // Page changes would need to be handled through a separate hook or state
+    console.log('Page change to:', page);
   };
 
   const getDifficultyColor = (difficulty: string) => {
@@ -106,8 +118,8 @@ export const ProblemList: React.FC<ProblemListProps> = ({
   if (error) {
     return (
       <div className="p-4 text-center">
-        <p className="text-sm text-destructive mb-2">{error}</p>
-        <Button size="sm" onClick={clearError} variant="outline">
+        <p className="text-sm text-destructive mb-2">{error.message || 'Ошибка загрузки задач'}</p>
+        <Button size="sm" onClick={() => window.location.reload()} variant="outline">
           Повторить
         </Button>
       </div>

@@ -1,18 +1,13 @@
 'use client';
 
 import { useEffect } from 'react';
-import { usePlatformStore } from '@/store/platform';
+import { Button } from '@/components/ui/button';
+import { usePlatformLevels } from '@/hooks/queries/usePlatform';
 import LevelCard from './LevelCard';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 const LevelsSection = () => {
-  const { levels, levelsLoading, levelsError, fetchLevels } = usePlatformStore();
-
-  useEffect(() => {
-    if (levels.length === 0 && !levelsLoading) {
-      fetchLevels();
-    }
-  }, [levels.length, levelsLoading, fetchLevels]);
+  const { data: levels = [], isLoading: levelsLoading, error: levelsError, refetch: refetchLevels } = usePlatformLevels();
 
   // Fallback levels in case backend is not available
   const fallbackLevels = [
@@ -48,9 +43,14 @@ const LevelsSection = () => {
         )}
         
         {levelsError && (
-          <p className="text-center text-muted-foreground">
-            Используются локальные данные (сервер недоступен)
-          </p>
+          <div className="text-center">
+            <p className="text-muted-foreground mb-2">
+              Используются локальные данные (сервер недоступен)
+            </p>
+            <Button variant="outline" size="sm" onClick={() => refetchLevels()}>
+              Повторить
+            </Button>
+          </div>
         )}
       </div>
     </section>

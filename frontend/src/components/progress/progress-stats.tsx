@@ -15,7 +15,7 @@ import {
   Zap,
   Award
 } from 'lucide-react';
-import { useProgressStore } from '@/store/progress';
+import { useSkillProgress, useWeeklyActivity, useLearningStreak } from '@/hooks/queries/useProgress';
 
 interface ProgressStatsProps {
   detailed?: boolean;
@@ -24,21 +24,22 @@ interface ProgressStatsProps {
 export const ProgressStats: React.FC<ProgressStatsProps> = ({
   detailed = true,
 }) => {
-  const {
-    skillProgress,
-    weeklyActivity,
-    learningStreak,
-    isLoading,
-    error,
-    fetchSkillProgress,
-    fetchWeeklyActivity,
-    getTimeSpentFormatted,
-  } = useProgressStore();
-
-  useEffect(() => {
-    fetchSkillProgress();
-    fetchWeeklyActivity();
-  }, [fetchSkillProgress, fetchWeeklyActivity]);
+  const { data: skillProgress = [], isLoading: skillLoading, error: skillError } = useSkillProgress();
+  const { data: weeklyActivity = [], isLoading: weeklyLoading } = useWeeklyActivity();
+  const { data: learningStreak } = useLearningStreak();
+  
+  const isLoading = skillLoading || weeklyLoading;
+  const error = skillError;
+  
+  // Helper function
+  const getTimeSpentFormatted = (minutes: number) => {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    if (hours > 0) {
+      return `${hours}ч ${mins}м`;
+    }
+    return `${mins}м`;
+  };
 
   const totalWeeklyTime = weeklyActivity.reduce((sum, day) => sum + day.time_spent, 0);
   const totalWeeklyLessons = weeklyActivity.reduce((sum, day) => sum + day.lessons_completed, 0);

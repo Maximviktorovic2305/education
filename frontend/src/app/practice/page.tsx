@@ -5,8 +5,8 @@ import { AuthGuard } from '@/components/auth/auth-guard';
 import { ProblemList } from '@/components/problems/problem-list';
 import { ProblemDetail } from '@/components/problems/problem-detail';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { useAuthStore } from '@/store/auth';
-import { useProblemStore } from '@/store/problem';
+import { useProfile, useLogout } from '@/hooks/queries/useAuth';
+import { useProblems } from '@/hooks/queries/useProblems';
 import { ArrowLeft, Code, User, LogOut, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Problem } from '@/types';
@@ -107,8 +107,12 @@ const mockProblems: Problem[] = [
 ];
 
 export default function PracticePage() {
-  const { user, logout } = useAuthStore();
-  const { setCurrentProblem } = useProblemStore();
+  const { data: user } = useProfile();
+  const { mutate: logout } = useLogout();
+  const { data: problemsData } = useProblems();
+  
+  const problems = problemsData?.data || mockProblems;
+  
   const [selectedProblem, setSelectedProblem] = useState<Problem | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'detail'>('list');
 
@@ -120,7 +124,6 @@ export default function PracticePage() {
 
   const handleProblemSelect = (problem: Problem) => {
     setSelectedProblem(problem);
-    setCurrentProblem(problem);
     setViewMode('detail');
   };
 

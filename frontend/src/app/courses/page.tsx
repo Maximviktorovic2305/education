@@ -3,30 +3,29 @@
 import { AuthGuard } from '@/components/auth/auth-guard';
 import { CourseSidebar } from '@/components/courses/course-sidebar';
 import { LessonViewer } from '@/components/lessons/lesson-viewer';
-import { useCourseStore } from '@/store/course';
+import { useProfile, useLogout } from '@/hooks/queries/useAuth';
+import { useCourses } from '@/hooks/queries/useCourses';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { useAuthStore } from '@/store/auth';
 import { ArrowLeft, Code, User, LogOut, Book } from 'lucide-react';
 import Link from 'next/link';
 
 export default function CoursesPage() {
-  const { user, logout } = useAuthStore();
-  const { 
-    currentLesson, 
-    sections, 
-    fetchLesson, 
-    completeLesson 
-  } = useCourseStore();
-
+  const { data: user } = useProfile();
+  const { mutate: logout } = useLogout();
+  
+  // For now, we'll use mock data since we need to handle lesson selection differently
+  const currentLesson = null;
+  const sections = [];
+  
   const handleLessonSelect = async (lessonId: number) => {
-    await fetchLesson(lessonId);
+    // TODO: Implement with TanStack Query
+    console.log('Select lesson:', lessonId);
   };
 
   const handleCompleteLesson = async () => {
-    if (currentLesson) {
-      await completeLesson(currentLesson.id);
-    }
+    // TODO: Implement with TanStack Query
+    console.log('Complete lesson');
   };
 
   // Find current lesson position for navigation

@@ -1,5 +1,5 @@
 import { api } from './client';
-import { Test, TestQuestion, TestAnswer, TestResult, PaginatedResponse } from '@/types';
+import { Test, TestQuestion, TestResult, PaginatedResponse } from '@/types';
 
 export interface TestFilters {
   search?: string;

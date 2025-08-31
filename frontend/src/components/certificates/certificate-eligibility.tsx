@@ -1,6 +1,5 @@
 'use client';
 
-import { useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -16,7 +15,7 @@ import {
   TestTube,
   Star
 } from 'lucide-react';
-import { useCertificateStore } from '@/store/certificate';
+import { useCertificateEligibility, useGenerateCertificate } from '@/hooks/queries/useCertificates';
 
 interface CertificateEligibilityProps {
   onGenerate?: (type: string) => void;
@@ -25,26 +24,30 @@ interface CertificateEligibilityProps {
 export const CertificateEligibility: React.FC<CertificateEligibilityProps> = ({
   onGenerate,
 }) => {
-  const {
-    eligibleCertificates,
-    isLoading,
-    isGenerating,
-    error,
-    fetchEligibleCertificates,
-    generateCertificate,
-    clearError,
-    getCertificateTypeTitle,
-    getCertificateTypeIcon,
-  } = useCertificateStore();
-
-  useEffect(() => {
-    fetchEligibleCertificates();
-  }, [fetchEligibleCertificates]);
+  const { data: eligibilityData, isLoading, error } = useCertificateEligibility();
+  const generateCertificateMutation = useGenerateCertificate();
+  
+  const eligibleCertificates = eligibilityData?.eligible_certificates || [];
+  const isGenerating = generateCertificateMutation.isPending;
 
   const handleGenerate = async (type: 'junior' | 'middle' | 'senior' | 'course' | 'achievement') => {
-    const certificate = await generateCertificate(type);
-    if (certificate && onGenerate) {
-      onGenerate(type);
+    generateCertificateMutation.mutate({ type }, {
+      onSuccess: () => {
+        if (onGenerate) {
+          onGenerate(type);
+        }
+      }
+    });
+  };
+
+  const getCertificateTypeIcon = (type: string) => {
+    switch (type) {
+      case 'junior': return '🎓';
+      case 'middle': return '📘';
+      case 'senior': return '👨‍💻';
+      case 'course': return '📚';
+      case 'achievement': return '🏆';
+      default: return '📜';
     }
   };
 
@@ -90,8 +93,8 @@ export const CertificateEligibility: React.FC<CertificateEligibilityProps> = ({
     return (
       <Card className="border-destructive">
         <CardContent className="p-6 text-center">
-          <p className="text-destructive mb-2">{error}</p>
-          <Button size="sm" onClick={clearError} variant="outline">
+          <p className="text-destructive mb-2">{error.message || 'Ошибка загрузки данных'}</p>
+          <Button size="sm" onClick={() => window.location.reload()} variant="outline">
             Повторить
           </Button>
         </CardContent>

@@ -20,7 +20,7 @@ import {
   Users,
   TrendingUp
 } from 'lucide-react';
-import { useTestStore } from '@/store/test';
+import { useTests } from '@/hooks/queries/useTests';
 import { Test } from '@/types';
 
 interface TestListProps {
@@ -36,28 +36,37 @@ export const TestList: React.FC<TestListProps> = ({
   showFilters = true,
   compact = false,
 }) => {
-  const {
-    tests,
-    filters,
-    pagination,
-    isLoading,
-    error,
-    userProgress,
-    fetchTests,
-    fetchUserProgress,
-    setFilters,
-    clearError,
-  } = useTestStore();
-
-  const [searchTerm, setSearchTerm] = useState(filters.search || '');
-
-  useEffect(() => {
-    fetchTests();
-    fetchUserProgress();
-  }, [fetchTests, fetchUserProgress]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [difficultyFilter, setDifficultyFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  
+  const filters = {
+    search: searchTerm || undefined,
+    difficulty: difficultyFilter !== 'all' ? difficultyFilter : undefined,
+    status: statusFilter !== 'all' ? statusFilter : undefined,
+  };
+  
+  const { data: testsData, isLoading, error } = useTests(1, 20, filters);
+  
+  const tests = testsData?.data || [];
+  const pagination = {
+    page: testsData?.page || 1,
+    limit: testsData?.limit || 20,
+    total: testsData?.total || 0,
+    pages: testsData?.pages || 1,
+  };
+  
+  // Mock user progress data
+  const userProgress = {
+    completed_tests: 0,
+    average_score: 0,
+    passed_tests: 0,
+    total_points: 0,
+    total_tests: tests.length,
+  };
 
   const handleSearch = () => {
-    setFilters({ search: searchTerm });
+    // Search is handled automatically by the query when searchTerm changes
   };
 
   const handleSearchKeyPress = (e: React.KeyboardEvent) => {
@@ -67,15 +76,15 @@ export const TestList: React.FC<TestListProps> = ({
   };
 
   const handleDifficultyFilter = (difficulty: string) => {
-    setFilters({ difficulty: difficulty === 'all' ? undefined : difficulty });
+    setDifficultyFilter(difficulty);
   };
 
   const handleStatusFilter = (status: string) => {
-    setFilters({ status: status === 'all' ? undefined : status });
+    setStatusFilter(status);
   };
 
   const handlePageChange = (page: number) => {
-    fetchTests(page);
+    console.log('Page change to:', page);
   };
 
   const getDifficultyLevel = (test: Test) => {
@@ -97,8 +106,8 @@ export const TestList: React.FC<TestListProps> = ({
   if (error) {
     return (
       <div className="p-4 text-center">
-        <p className="text-sm text-destructive mb-2">{error}</p>
-        <Button size="sm" onClick={clearError} variant="outline">
+        <p className="text-sm text-destructive mb-2">{error.message || 'Ошибка загрузки тестов'}</p>
+        <Button size="sm" onClick={() => window.location.reload()} variant="outline">
           Повторить
         </Button>
       </div>

@@ -13,32 +13,38 @@ import {
   Calendar,
   User,
   Award,
-  ExternalLink
 } from 'lucide-react';
-import { useCertificateStore } from '@/store/certificate';
+import { useCertificateValidation } from '@/hooks/queries/useCertificates';
 
 export const CertificateValidator: React.FC = () => {
   const [certificateNumber, setCertificateNumber] = useState('');
-  const {
-    validationResult,
-    isValidating,
-    error,
-    validateCertificate,
-    clearValidation,
-    clearError,
-    formatCertificateNumber,
-    getCertificateTypeIcon,
-  } = useCertificateStore();
+  const [searchNumber, setSearchNumber] = useState('');
+  
+  const { data: validationResult, isLoading: isValidating, error } = useCertificateValidation(searchNumber);
 
   const handleValidate = async () => {
     if (!certificateNumber.trim()) return;
-    await validateCertificate(certificateNumber.trim());
+    setSearchNumber(certificateNumber.trim());
   };
 
   const handleClear = () => {
     setCertificateNumber('');
-    clearValidation();
-    clearError();
+    setSearchNumber('');
+  };
+
+  const formatCertificateNumber = (number: string) => {
+    return number.replace(/(.{4})/g, '$1-').slice(0, -1);
+  };
+
+  const getCertificateTypeIcon = (type: string) => {
+    switch (type) {
+      case 'junior': return '🎓';
+      case 'middle': return '📘';
+      case 'senior': return '👨‍💻';
+      case 'course': return '📚';
+      case 'achievement': return '🏆';
+      default: return '📜';
+    }
   };
 
   const formatDate = (dateString: string) => {

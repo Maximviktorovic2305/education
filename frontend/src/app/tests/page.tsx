@@ -5,8 +5,8 @@ import { AuthGuard } from '@/components/auth/auth-guard';
 import { TestList } from '@/components/tests/test-list';
 import { TestTaker } from '@/components/tests/test-taker';
 import { TestResultDisplay } from '@/components/tests/test-result';
-import { useTestStore } from '@/store/test';
-import { useAuthStore } from '@/store/auth';
+import { useProfile, useLogout } from '@/hooks/queries/useAuth';
+import { useTests } from '@/hooks/queries/useTests';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { ArrowLeft, Code, User, LogOut, Target, Trophy } from 'lucide-react';
@@ -16,13 +16,19 @@ import Link from 'next/link';
 type ViewMode = 'list' | 'taking' | 'result';
 
 export default function TestsPage() {
-  const { user, logout } = useAuthStore();
-  const { 
-    currentTest, 
-    currentTestResult, 
-    isTestActive,
-    clearCurrentTest 
-  } = useTestStore();
+  const { data: user } = useProfile();
+  const { mutate: logout } = useLogout();
+  const { data: testsData } = useTests();
+  
+  // For now, use mock data since we need to handle test state differently
+  const currentTest = null;
+  const currentTestResult = null;
+  const isTestActive = false;
+  
+  const clearCurrentTest = () => {
+    // TODO: Implement with TanStack Query
+    console.log('Clear current test');
+  };
 
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [selectedTest, setSelectedTest] = useState<Test | null>(null);

@@ -20,7 +20,7 @@ import {
   Award,
   TrendingUp
 } from 'lucide-react';
-import { useTestStore } from '@/store/test';
+// Mock implementation - would use TanStack Query hooks in real implementation
 import { Test, TestResult, TestQuestion } from '@/types';
 
 interface TestResultDisplayProps {
@@ -38,12 +38,15 @@ export const TestResultDisplay: React.FC<TestResultDisplayProps> = ({
   onClose,
   showAnswerReview = true,
 }) => {
-  const { fetchUserProgress } = useTestStore();
+  // Mock implementation - in real app would use TanStack Query
+  const fetchUserProgress = () => {
+    console.log('Fetching user progress...');
+  };
 
   useEffect(() => {
     // Update user progress after test completion
     fetchUserProgress();
-  }, [fetchUserProgress]);
+  }, []);
 
   const userAnswers = result.answers ? JSON.parse(result.answers) : {};
   const questions = test.questions || [];

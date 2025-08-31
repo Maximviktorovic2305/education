@@ -1,9 +1,9 @@
 'use client';
 
-import { useAuthStore } from '@/store/auth';
+import { useProfile } from '@/hooks/queries/useAuth';
 
 const WelcomeSection = () => {
-  const { user } = useAuthStore();
+  const { data: user } = useProfile();
 
   return (
     <div className="mb-8">

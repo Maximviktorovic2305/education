@@ -7,6 +7,7 @@ import (
 	"go-education-platform/internal/config"
 	"go-education-platform/internal/database"
 	"go-education-platform/internal/router"
+	"go-education-platform/internal/services"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -30,6 +31,15 @@ func main() {
 	// Выполняем миграции
 	if err := database.Migrate(db); err != nil {
 		log.Fatal("Не удалось выполнить миграции:", err)
+	}
+
+	// Инициализируем платформенный сервис и заполняем базовые данные
+	platformService := services.NewPlatformService(db)
+	if err := platformService.SeedDefaultFeatures(); err != nil {
+		log.Printf("Предупреждение: не удалось инициализировать функции платформы: %v", err)
+	}
+	if err := platformService.SeedDefaultLevels(); err != nil {
+		log.Printf("Предупреждение: не удалось инициализировать уровни платформы: %v", err)
 	}
 
 	// Настраиваем режим Gin

@@ -18,8 +18,8 @@ type UserProgress struct {
 	UpdatedAt    time.Time `json:"updated_at"`
 
 	// Связи
-	User   User   `json:"user,omitempty"`
-	Lesson Lesson `json:"lesson,omitempty"`
+	User   User   `json:"user,omitempty" gorm:"foreignKey:UserID"`
+	Lesson Lesson `json:"lesson,omitempty" gorm:"foreignKey:LessonID"`
 
 	// Уникальный индекс для пары пользователь-урок
 	_ struct{} `gorm:"uniqueIndex:idx_user_lesson,priority:1"`
@@ -44,8 +44,8 @@ type UserSubmission struct {
 	UpdatedAt   time.Time        `json:"updated_at"`
 
 	// Связи
-	User    User    `json:"user,omitempty"`
-	Problem Problem `json:"problem,omitempty"`
+	User    User    `json:"user,omitempty" gorm:"foreignKey:UserID"`
+	Problem Problem `json:"problem,omitempty" gorm:"foreignKey:ProblemID"`
 }
 
 // SubmissionStatus определяет статус отправки
@@ -79,8 +79,8 @@ type UserTestResult struct {
 	UpdatedAt     time.Time `json:"updated_at"`
 
 	// Связи
-	User User `json:"user,omitempty"`
-	Test Test `json:"test,omitempty"`
+	User User `json:"user,omitempty" gorm:"foreignKey:UserID"`
+	Test Test `json:"test,omitempty" gorm:"foreignKey:TestID"`
 }
 
 // Certificate представляет сертификат
@@ -98,7 +98,7 @@ type Certificate struct {
 	UpdatedAt    time.Time      `json:"updated_at"`
 
 	// Связи
-	User User `json:"user,omitempty"`
+	User User `json:"user,omitempty" gorm:"foreignKey:UserID"`
 }
 
 // CertificateType определяет тип сертификата
@@ -123,7 +123,7 @@ type RefreshToken struct {
 	UpdatedAt time.Time `json:"updated_at"`
 
 	// Связи
-	User User `json:"user,omitempty"`
+	User User `json:"user,omitempty" gorm:"foreignKey:UserID"`
 }
 
 // BeforeDelete хук для очистки связанных данных при удалении пользователя

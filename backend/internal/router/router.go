@@ -37,6 +37,7 @@ func Setup(db *gorm.DB, cfg *config.Config) *gin.Engine {
 	progressService := services.NewProgressService(db)
 	certificateService := services.NewCertificateService(db)
 	sandboxService := services.NewSandboxService()
+	platformService := services.NewPlatformService(db)
 
 	// Инициализируем хендлеры
 	authHandler := handlers.NewAuthHandler(authService)
@@ -46,6 +47,7 @@ func Setup(db *gorm.DB, cfg *config.Config) *gin.Engine {
 	testHandler := handlers.NewTestHandler(testService)
 	progressHandler := handlers.NewProgressHandler(progressService)
 	certificateHandler := handlers.NewCertificateHandler(certificateService)
+	platformHandler := handlers.NewPlatformHandler(platformService)
 
 	// API группа
 	api := r.Group("/api")
@@ -59,6 +61,14 @@ func Setup(db *gorm.DB, cfg *config.Config) *gin.Engine {
 		auth.POST("/logout", authHandler.Logout)
 	}
 
+	// Публичные маршруты платформы
+	platform := api.Group("/platform")
+	{
+		platform.GET("/features", platformHandler.GetFeatures)
+		platform.GET("/levels", platformHandler.GetLevels)
+		platform.GET("/stats", platformHandler.GetStats)
+	}
+
 	// Защищённые маршруты (требуют аутентификации)
 	protected := api.Group("/")
 	protected.Use(middleware.AuthMiddleware(cfg.JWT.Secret))
@@ -69,6 +79,18 @@ func Setup(db *gorm.DB, cfg *config.Config) *gin.Engine {
 		users.GET("/profile", userHandler.GetProfile)
 		users.PUT("/profile", userHandler.UpdateProfile)
 		users.POST("/change-password", userHandler.ChangePassword)
+		
+		// Add missing endpoints that frontend is calling
+		users.GET("/me/stats", progressHandler.GetUserStats)        // Fix 404 error
+		users.GET("/me/progress", progressHandler.GetUserProgress)  // Additional endpoint
+		users.GET("/me/achievements", certificateHandler.GetUserCertificates) // Map to certificates for now
+		
+		// Additional user endpoints
+		users.GET("/me/level-system", progressHandler.GetLevelSystem)
+		users.GET("/me/streak", progressHandler.GetLearningStreak)
+		users.GET("/me/skills", progressHandler.GetSkillProgress)
+		users.GET("/me/activity/weekly", progressHandler.GetWeeklyActivity)
+		users.GET("/me/progress/monthly", progressHandler.GetMonthlyProgress)
 	}
 
 	// Курсы и уроки
@@ -109,8 +131,10 @@ func Setup(db *gorm.DB, cfg *config.Config) *gin.Engine {
 	// Прогресс
 	progress := protected.Group("/progress")
 	{
-		progress.GET("", progressHandler.GetUserProgress)
-		progress.GET("/stats", progressHandler.GetUserStats)
+		progress.GET("/overview", progressHandler.GetUserProgress)  // Renamed from "" to avoid conflicts
+		progress.GET("/statistics", progressHandler.GetUserStats)   // Renamed from "/stats" to avoid conflicts
+		progress.GET("/lessons", progressHandler.GetLessonProgress)
+		progress.POST("/lessons/:id", progressHandler.UpdateLessonProgress)
 	}
 
 	// Сертификаты
@@ -119,6 +143,9 @@ func Setup(db *gorm.DB, cfg *config.Config) *gin.Engine {
 		certificates.GET("", certificateHandler.GetUserCertificates)
 		certificates.POST("/generate", certificateHandler.GenerateCertificate)
 		certificates.GET("/:id/download", certificateHandler.DownloadCertificate)
+		certificates.GET("/validate/:number", certificateHandler.ValidateCertificate)
+		certificates.GET("/:id/verification-url", certificateHandler.GetVerificationUrl)
+		certificates.GET("/eligibility", certificateHandler.CheckEligibility)
 	}
 
 	// Административные маршруты

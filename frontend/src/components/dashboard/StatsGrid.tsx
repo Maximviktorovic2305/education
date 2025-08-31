@@ -1,21 +1,14 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useAuthStore } from '@/store/auth';
-import { useUserStatsStore } from '@/store/userStats';
+import { useProfile } from '@/hooks/queries/useAuth';
+import { useCurrentUserStats } from '@/hooks/queries/useProgress';
 import { Trophy, User, Book, Code } from 'lucide-react';
 import StatsCard from './StatsCard';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 const StatsGrid = () => {
-  const { user } = useAuthStore();
-  const { stats, statsLoading, statsError, fetchUserStats } = useUserStatsStore();
-
-  useEffect(() => {
-    if (!stats && !statsLoading) {
-      fetchUserStats();
-    }
-  }, [stats, statsLoading, fetchUserStats]);
+  const { data: user } = useProfile();
+  const { data: stats, isLoading: statsLoading, error: statsError } = useCurrentUserStats();
 
   // Use backend data if available, fallback to user auth data
   const displayStats = [

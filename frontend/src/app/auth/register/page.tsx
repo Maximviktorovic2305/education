@@ -2,13 +2,12 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PasswordField } from '@/components/ui/password-field';
 import { Logo } from '@/components/ui/logo';
-import { useAuthStore } from '@/store/auth';
+import { useRegister } from '@/hooks/queries/useAuth';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { toast } from 'sonner';
 import { ArrowLeft } from 'lucide-react';
@@ -18,10 +17,8 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  
-  const { register } = useAuthStore();
-  const router = useRouter();
+  const registerMutation = useRegister();
+  const isLoading = registerMutation.isPending;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,17 +33,11 @@ export default function RegisterPage() {
       return;
     }
 
-    setIsLoading(true);
-
-    try {
-      await register({ name, email, password });
-      toast.success('Регистрация успешна! Добро пожаловать!');
-      router.push('/dashboard');
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Ошибка регистрации');
-    } finally {
-      setIsLoading(false);
-    }
+    registerMutation.mutate({
+      name,
+      email,
+      password
+    });
   };
 
   return (

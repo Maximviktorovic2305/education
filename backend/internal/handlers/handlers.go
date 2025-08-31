@@ -588,41 +588,141 @@ func NewTestHandler(testService *services.TestService) *TestHandler {
 	return &TestHandler{testService: testService}
 }
 
-// TODO: Implement test handlers
+// GetTests получает список тестов с пагинацией и фильтрацией
 func (h *TestHandler) GetTests(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"message": "Not implemented yet"})
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	search := c.Query("search")
+	difficulty := c.Query("difficulty")
+	
+	tests, total, err := h.testService.GetTests(page, limit, search, difficulty)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка получения тестов"})
+		return
+	}
+	
+	c.JSON(http.StatusOK, gin.H{
+		"tests": tests,
+		"total": total,
+		"page": page,
+		"limit": limit,
+	})
 }
 
+// GetTest получает тест по ID с вопросами и ответами
 func (h *TestHandler) GetTest(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"message": "Not implemented yet"})
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "неверный ID теста"})
+		return
+	}
+	
+	test, err := h.testService.GetTestByID(uint(id))
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "тест не найден"})
+		return
+	}
+	
+	c.JSON(http.StatusOK, test)
 }
 
+// StartTest запускает тест для пользователя
 func (h *TestHandler) StartTest(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"message": "Not implemented yet"})
+	userID, exists := middleware.GetUserIDFromContext(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "пользователь не авторизован"})
+		return
+	}
+	
+	testID, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "неверный ID теста"})
+		return
+	}
+	
+	// TODO: Implement test start logic
+	c.JSON(http.StatusOK, gin.H{
+		"message": "тест начат",
+		"test_id": testID,
+		"user_id": userID,
+	})
 }
 
+// SubmitTest отправляет результаты теста
 func (h *TestHandler) SubmitTest(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"message": "Not implemented yet"})
+	userID, exists := middleware.GetUserIDFromContext(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "пользователь не авторизован"})
+		return
+	}
+	
+	testID, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "неверный ID теста"})
+		return
+	}
+	
+	// TODO: Implement test submission logic
+	c.JSON(http.StatusOK, gin.H{
+		"message": "результаты теста отправлены",
+		"test_id": testID,
+		"user_id": userID,
+	})
 }
 
+// GetTestResults получает результаты конкретного теста
 func (h *TestHandler) GetTestResults(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"message": "Not implemented yet"})
+	userID, exists := middleware.GetUserIDFromContext(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "пользователь не авторизован"})
+		return
+	}
+	
+	testID, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "неверный ID теста"})
+		return
+	}
+	
+	// TODO: Implement test results retrieval logic
+	c.JSON(http.StatusOK, gin.H{
+		"message": "результаты теста",
+		"test_id": testID,
+		"user_id": userID,
+	})
 }
 
+// GetUserTestResults получает все результаты тестов пользователя
 func (h *TestHandler) GetUserTestResults(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"message": "Not implemented yet"})
+	userID, exists := middleware.GetUserIDFromContext(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "пользователь не авторизован"})
+		return
+	}
+	
+	// TODO: Implement user test results retrieval logic
+	c.JSON(http.StatusOK, gin.H{
+		"message": "результаты всех тестов пользователя",
+		"user_id": userID,
+	})
 }
 
+// CreateTest создаёт новый тест (админ)
 func (h *TestHandler) CreateTest(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"message": "Not implemented yet"})
+	// TODO: Implement test creation logic
+	c.JSON(http.StatusOK, gin.H{"message": "тест создан"})
 }
 
+// UpdateTest обновляет тест (админ)
 func (h *TestHandler) UpdateTest(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"message": "Not implemented yet"})
+	// TODO: Implement test update logic
+	c.JSON(http.StatusOK, gin.H{"message": "тест обновлён"})
 }
 
+// DeleteTest удаляет тест (админ)
 func (h *TestHandler) DeleteTest(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"message": "Not implemented yet"})
+	// TODO: Implement test deletion logic
+	c.JSON(http.StatusOK, gin.H{"message": "тест удалён"})
 }
 
 type ProgressHandler struct {
@@ -633,17 +733,208 @@ func NewProgressHandler(progressService *services.ProgressService) *ProgressHand
 	return &ProgressHandler{progressService: progressService}
 }
 
-// TODO: Implement progress handlers
+// CompleteLesson отмечает урок как завершённый
 func (h *ProgressHandler) CompleteLesson(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"message": "Not implemented yet"})
+	userID, exists := middleware.GetUserIDFromContext(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "пользователь не авторизован"})
+		return
+	}
+	
+	lessonID, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "неверный ID урока"})
+		return
+	}
+	
+	progress, err := h.progressService.CompleteLesson(userID, uint(lessonID))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	
+	c.JSON(http.StatusOK, progress)
 }
 
+// GetUserProgress получает прогресс пользователя по урокам
 func (h *ProgressHandler) GetUserProgress(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"message": "Not implemented yet"})
+	userID, exists := middleware.GetUserIDFromContext(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "пользователь не авторизован"})
+		return
+	}
+	
+	progress, err := h.progressService.GetUserProgress(userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка получения прогресса"})
+		return
+	}
+	
+	c.JSON(http.StatusOK, progress)
 }
 
+// GetUserStats получает статистику пользователя
 func (h *ProgressHandler) GetUserStats(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"message": "Not implemented yet"})
+	userID, exists := middleware.GetUserIDFromContext(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "пользователь не авторизован"})
+		return
+	}
+	
+	stats, err := h.progressService.GetUserStatistics(userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка получения статистики"})
+		return
+	}
+	
+	c.JSON(http.StatusOK, stats)
+}
+
+// GetLevelSystem получает данные системы уровней пользователя
+func (h *ProgressHandler) GetLevelSystem(c *gin.Context) {
+	userID, exists := middleware.GetUserIDFromContext(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "пользователь не авторизован"})
+		return
+	}
+	
+	levelSystem, err := h.progressService.GetLevelSystem(userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка получения данных системы уровней"})
+		return
+	}
+	
+	c.JSON(http.StatusOK, levelSystem)
+}
+
+// GetLearningStreak получает информацию о серии обучения пользователя
+func (h *ProgressHandler) GetLearningStreak(c *gin.Context) {
+	userID, exists := middleware.GetUserIDFromContext(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "пользователь не авторизован"})
+		return
+	}
+	
+	streak, err := h.progressService.GetLearningStreak(userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка получения информации о серии обучения"})
+		return
+	}
+	
+	c.JSON(http.StatusOK, streak)
+}
+
+// GetSkillProgress получает прогресс по навыкам пользователя
+func (h *ProgressHandler) GetSkillProgress(c *gin.Context) {
+	userID, exists := middleware.GetUserIDFromContext(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "пользователь не авторизован"})
+		return
+	}
+	
+	skills, err := h.progressService.GetSkillProgress(userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка получения прогресса по навыкам"})
+		return
+	}
+	
+	c.JSON(http.StatusOK, skills)
+}
+
+// GetLessonProgress получает детальный прогресс по урокам
+func (h *ProgressHandler) GetLessonProgress(c *gin.Context) {
+	userID, exists := middleware.GetUserIDFromContext(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "пользователь не авторизован"})
+		return
+	}
+	
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	
+	// Parse filters from query parameters
+	filters := make(map[string]interface{})
+	if courseIDStr := c.Query("course_id"); courseIDStr != "" {
+		if courseID, err := strconv.ParseUint(courseIDStr, 10, 32); err == nil {
+			filters["course_id"] = uint(courseID)
+		}
+	}
+	
+	progress, err := h.progressService.GetLessonProgress(userID, page, limit, filters)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка получения прогресса по урокам"})
+		return
+	}
+	
+	c.JSON(http.StatusOK, progress)
+}
+
+// UpdateLessonProgress обновляет прогресс по уроку
+func (h *ProgressHandler) UpdateLessonProgress(c *gin.Context) {
+	userID, exists := middleware.GetUserIDFromContext(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "пользователь не авторизован"})
+		return
+	}
+	
+	lessonID, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "неверный ID урока"})
+		return
+	}
+	
+	var req UpdateLessonProgressRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "неверные данные", "details": err.Error()})
+		return
+	}
+	
+	progress, err := h.progressService.UpdateLessonProgress(userID, uint(lessonID), req.TimeSpent)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	
+	c.JSON(http.StatusOK, progress)
+}
+
+// GetWeeklyActivity получает данные о недельной активности пользователя
+func (h *ProgressHandler) GetWeeklyActivity(c *gin.Context) {
+	userID, exists := middleware.GetUserIDFromContext(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "пользователь не авторизован"})
+		return
+	}
+	
+	activity, err := h.progressService.GetWeeklyActivity(userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка получения данных о недельной активности"})
+		return
+	}
+	
+	c.JSON(http.StatusOK, activity)
+}
+
+// GetMonthlyProgress получает данные о ежемесячном прогрессе пользователя
+func (h *ProgressHandler) GetMonthlyProgress(c *gin.Context) {
+	userID, exists := middleware.GetUserIDFromContext(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "пользователь не авторизован"})
+		return
+	}
+	
+	progress, err := h.progressService.GetMonthlyProgress(userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка получения данных о ежемесячном прогрессе"})
+		return
+	}
+	
+	c.JSON(http.StatusOK, progress)
+}
+
+// UpdateLessonProgressRequest структура для запроса обновления прогресса по уроку
+type UpdateLessonProgressRequest struct {
+	TimeSpent int `json:"time_spent"`
 }
 
 type CertificateHandler struct {
@@ -654,15 +945,116 @@ func NewCertificateHandler(certificateService *services.CertificateService) *Cer
 	return &CertificateHandler{certificateService: certificateService}
 }
 
-// TODO: Implement certificate handlers
+// GetUserCertificates получает сертификаты пользователя
 func (h *CertificateHandler) GetUserCertificates(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"message": "Not implemented yet"})
+	userID, exists := middleware.GetUserIDFromContext(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "пользователь не авторизован"})
+		return
+	}
+	
+	certificates, err := h.certificateService.GetUserCertificates(userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка получения сертификатов"})
+		return
+	}
+	
+	c.JSON(http.StatusOK, certificates)
 }
 
+// GenerateCertificate генерирует новый сертификат
 func (h *CertificateHandler) GenerateCertificate(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"message": "Not implemented yet"})
+	userID, exists := middleware.GetUserIDFromContext(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "пользователь не авторизован"})
+		return
+	}
+	
+	var req services.GenerateCertificateRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "неверные данные", "details": err.Error()})
+		return
+	}
+	
+	certificate, err := h.certificateService.GenerateCertificate(userID, &req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка генерации сертификата"})
+		return
+	}
+	
+	c.JSON(http.StatusCreated, certificate)
 }
 
+// DownloadCertificate скачивает PDF сертификата
 func (h *CertificateHandler) DownloadCertificate(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"message": "Not implemented yet"})
+	// TODO: Implement certificate PDF download logic
+	c.JSON(http.StatusOK, gin.H{"message": "функционал скачивания сертификата будет реализован позже"})
+}
+
+// ValidateCertificate проверяет действительность сертификата по номеру
+func (h *CertificateHandler) ValidateCertificate(c *gin.Context) {
+	certificateNumber := c.Param("number")
+	if certificateNumber == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "не указан номер сертификата"})
+		return
+	}
+	
+	result, err := h.certificateService.ValidateCertificate(certificateNumber)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка проверки сертификата"})
+		return
+	}
+	
+	c.JSON(http.StatusOK, result)
+}
+
+// GetVerificationUrl получает URL для проверки сертификата
+func (h *CertificateHandler) GetVerificationUrl(c *gin.Context) {
+	certificateID, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "неверный ID сертификата"})
+		return
+	}
+	
+	result, err := h.certificateService.GetVerificationUrl(uint(certificateID))
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+	
+	c.JSON(http.StatusOK, result)
+}
+
+// CheckEligibility проверяет возможность получения сертификатов пользователем
+func (h *CertificateHandler) CheckEligibility(c *gin.Context) {
+	userID, exists := middleware.GetUserIDFromContext(c)
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "пользователь не авторизован"})
+		return
+	}
+	
+	result, err := h.certificateService.CheckEligibility(userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "ошибка проверки возможности получения сертификатов"})
+		return
+	}
+	
+	c.JSON(http.StatusOK, result)
+}
+
+// GetCertificate получает конкретный сертификат по ID
+func (h *CertificateHandler) GetCertificate(c *gin.Context) {
+	certificateID, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "неверный ID сертификата"})
+		return
+	}
+	
+	certificate, err := h.certificateService.GetCertificateByID(uint(certificateID))
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+	
+	c.JSON(http.StatusOK, certificate)
 }

@@ -1,25 +1,25 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuthStore } from '@/store/auth';
+import { useProfile } from '@/hooks/queries/useAuth';
 import DashboardHeader from '@/components/layout/DashboardHeader';
 import WelcomeSection from '@/components/dashboard/WelcomeSection';
 import StatsGrid from '@/components/dashboard/StatsGrid';
 import QuickActionsGrid from '@/components/dashboard/QuickActionsGrid';
 import LoadingPage from '@/components/common/LoadingPage';
+import { redirect } from 'next/navigation';
+import { getAccessToken } from '@/lib/queryClient';
 
 export default function DashboardPage() {
-  const { user, isAuthenticated } = useAuthStore();
-  const router = useRouter();
+  // Check authentication
+  const isAuthenticated = !!getAccessToken();
+  
+  if (!isAuthenticated) {
+    redirect('/auth/login');
+  }
 
-  useEffect(() => {
-    if (!isAuthenticated) {
-      router.push('/auth/login');
-    }
-  }, [isAuthenticated, router]);
+  const { data: user, isLoading } = useProfile();
 
-  if (!isAuthenticated || !user) {
+  if (isLoading || !user) {
     return <LoadingPage />;
   }
 

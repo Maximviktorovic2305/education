@@ -21,7 +21,7 @@ import {
   History
 } from 'lucide-react';
 import { Problem } from '@/types';
-import { useProblemStore } from '@/store/problem';
+import { useUserSubmissions, useSubmitSolution } from '@/hooks/queries/useProblems';
 import { toast } from 'sonner';
 
 interface ProblemDetailProps {
@@ -50,20 +50,28 @@ export const ProblemDetail: React.FC<ProblemDetailProps> = ({
   problem,
   onBack,
 }) => {
-  const {
-    submissions,
-    isLoading,
-    submitSolution,
-    fetchUserSubmissions,
-  } = useProblemStore();
+  const { data: submissionsData } = useUserSubmissions(problem.id);
+  const submitSolutionMutation = useSubmitSolution();
+  
+  const submissions = submissionsData?.data || [];
+  const isLoading = submitSolutionMutation.isPending;
 
   const [code, setCode] = useState(problem.initial_code || getDefaultCode());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lastResult, setLastResult] = useState<ExecutionResult | null>(null);
 
-  useEffect(() => {
-    fetchUserSubmissions(problem.id);
-  }, [problem.id, fetchUserSubmissions]);
+  const handleSubmitSolution = async () => {
+    if (!code.trim()) {
+      toast.error('Пожалуйста, введите код решения');
+      return;
+    }
+
+    submitSolutionMutation.mutate({
+      problem_id: problem.id,
+      code,
+      language: 'go'
+    });
+  };
 
   function getDefaultCode(): string {
     return `package main
@@ -106,23 +114,6 @@ func main() {
       };
       setLastResult(errorResult);
       return errorResult;
-    }
-  };
-
-  const handleSubmitSolution = async () => {
-    if (!code.trim()) {
-      toast.error('Пожалуйста, введите код решения');
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      await submitSolution(problem.id, code, 'go');
-      toast.success('Решение отправлено успешно!');
-    } catch (error) {
-      toast.error('Ошибка при отправке решения');
-    } finally {
-      setIsSubmitting(false);
     }
   };
 

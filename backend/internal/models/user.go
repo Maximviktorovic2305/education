@@ -18,11 +18,11 @@ type User struct {
 	UpdatedAt time.Time `json:"updated_at"`
 
 	// Связи
-	Progress     []UserProgress     `json:"progress,omitempty"`
-	Submissions  []UserSubmission   `json:"submissions,omitempty"`
-	TestResults  []UserTestResult   `json:"test_results,omitempty"`
-	Certificates []Certificate      `json:"certificates,omitempty"`
-	RefreshTokens []RefreshToken    `json:"-"`
+	Progress     []UserProgress     `json:"progress,omitempty" gorm:"foreignKey:UserID"`
+	Submissions  []UserSubmission   `json:"submissions,omitempty" gorm:"foreignKey:UserID"`
+	TestResults  []UserTestResult   `json:"test_results,omitempty" gorm:"foreignKey:UserID"`
+	Certificates []Certificate      `json:"certificates,omitempty" gorm:"foreignKey:UserID"`
+	RefreshTokens []RefreshToken    `json:"-" gorm:"foreignKey:UserID"`
 }
 
 // UserRole определяет роль пользователя
@@ -54,7 +54,7 @@ type Course struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 
 	// Связи
-	Sections []Section `json:"sections,omitempty"`
+	Sections []Section `json:"sections,omitempty" gorm:"foreignKey:CourseID"`
 }
 
 // Section представляет раздел курса
@@ -69,8 +69,8 @@ type Section struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 
 	// Связи
-	Course  Course   `json:"course,omitempty"`
-	Lessons []Lesson `json:"lessons,omitempty"`
+	Course  Course   `json:"course,omitempty" gorm:"foreignKey:CourseID"`
+	Lessons []Lesson `json:"lessons,omitempty" gorm:"foreignKey:SectionID"`
 }
 
 // Lesson представляет урок
@@ -87,8 +87,8 @@ type Lesson struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 
 	// Связи
-	Section  Section        `json:"section,omitempty"`
-	Progress []UserProgress `json:"progress,omitempty"`
+	Section  Section        `json:"section,omitempty" gorm:"foreignKey:SectionID"`
+	Progress []UserProgress `json:"progress,omitempty" gorm:"foreignKey:LessonID"`
 }
 
 // Problem представляет практическую задачу
@@ -107,7 +107,7 @@ type Problem struct {
 	UpdatedAt    time.Time       `json:"updated_at"`
 
 	// Связи
-	Submissions []UserSubmission `json:"submissions,omitempty"`
+	Submissions []UserSubmission `json:"submissions,omitempty" gorm:"foreignKey:ProblemID"`
 }
 
 // ProblemLevel определяет сложность задачи
@@ -132,8 +132,8 @@ type Test struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 
 	// Связи
-	Questions []TestQuestion   `json:"questions,omitempty"`
-	Results   []UserTestResult `json:"results,omitempty"`
+	Questions []TestQuestion   `json:"questions,omitempty" gorm:"foreignKey:TestID"`
+	Results   []UserTestResult `json:"results,omitempty" gorm:"foreignKey:TestID"`
 }
 
 // TestQuestion представляет вопрос теста
@@ -147,8 +147,8 @@ type TestQuestion struct {
 	UpdatedAt time.Time `json:"updated_at"`
 
 	// Связи
-	Test    Test         `json:"test,omitempty"`
-	Answers []TestAnswer `json:"answers,omitempty"`
+	Test    Test         `json:"test,omitempty" gorm:"foreignKey:TestID"`
+	Answers []TestAnswer `json:"answers,omitempty" gorm:"foreignKey:QuestionID"`
 }
 
 // TestAnswer представляет вариант ответа на вопрос
@@ -162,5 +162,5 @@ type TestAnswer struct {
 	UpdatedAt  time.Time `json:"updated_at"`
 
 	// Связи
-	Question TestQuestion `json:"question,omitempty"`
+	Question TestQuestion `json:"question,omitempty" gorm:"foreignKey:QuestionID"`
 }

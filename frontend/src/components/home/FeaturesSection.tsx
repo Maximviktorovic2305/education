@@ -1,19 +1,14 @@
 'use client';
 
 import { useEffect } from 'react';
+import { Button } from '@/components/ui/button';
 import { Book, Code, CheckCircle, Trophy } from 'lucide-react';
-import { usePlatformStore } from '@/store/platform';
+import { usePlatformFeatures } from '@/hooks/queries/usePlatform';
 import FeatureCard from './FeatureCard';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 const FeaturesSection = () => {
-  const { features, featuresLoading, featuresError, fetchFeatures } = usePlatformStore();
-
-  useEffect(() => {
-    if (features.length === 0 && !featuresLoading) {
-      fetchFeatures();
-    }
-  }, [features.length, featuresLoading, fetchFeatures]);
+  const { data: features = [], isLoading: featuresLoading, error: featuresError, refetch: refetchFeatures } = usePlatformFeatures();
 
   // Fallback features in case backend is not available
   const fallbackFeatures = [
@@ -81,9 +76,14 @@ const FeaturesSection = () => {
         )}
         
         {featuresError && (
-          <p className="text-center text-muted-foreground">
-            Используются локальные данные (сервер недоступен)
-          </p>
+          <div className="text-center">
+            <p className="text-muted-foreground mb-2">
+              Используются локальные данные (сервер недоступен)
+            </p>
+            <Button variant="outline" size="sm" onClick={() => refetchFeatures()}>
+              Повторить
+            </Button>
+          </div>
         )}
       </div>
     </section>
